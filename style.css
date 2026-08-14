@@ -1,5 +1,5 @@
 /* ============================================================
-   MINEPULSE – BASE STYLES
+   MINEPULSE – FULL LAYOUT STYLES
    ============================================================ */
 * {
   margin: 0;
@@ -12,40 +12,197 @@ body {
   background: #0B0F14;
   color: #F8FAFC;
   min-height: 100vh;
+  padding-bottom: 80px;
+}
+
+/* ---------- HEADER ---------- */
+.app-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  padding: 20px;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 
-.container {
-  text-align: center;
-  max-width: 400px;
-}
-
-.logo {
-  font-size: 2.5rem;
+.logo-text {
+  font-size: 1.3rem;
   font-weight: 800;
   background: linear-gradient(135deg, #FBBF24, #22D3EE);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 8px;
 }
 
-.tagline {
+.header-right {
+  display: flex;
+  gap: 12px;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
   color: #A7B0BC;
-  font-size: 1rem;
+  cursor: pointer;
+  padding: 4px;
+  transition: 0.2s;
+}
+.icon-btn:hover {
+  color: #F8FAFC;
+}
+
+/* ---------- MAIN CONTENT ---------- */
+.main-content {
+  padding: 20px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.page {
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
+.page.active {
+  display: block;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- WELCOME CARD ---------- */
+.welcome-card {
   margin-bottom: 24px;
 }
-
-.status {
-  display: inline-block;
-  background: rgba(52, 211, 153, 0.12);
-  color: #34D399;
-  padding: 6px 16px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  border: 1px solid rgba(52, 211, 153, 0.2);
+.welcome-card h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
 }
+.welcome-card .subtitle {
+  color: #A7B0BC;
+  font-size: 0.95rem;
+}
+
+/* ---------- STATS GRID ---------- */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.stat-card {
+  background: #121922;
+  border-radius: 16px;
+  padding: 16px 12px;
+  text-align: center;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.stat-label {
+  display: block;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #687384;
+  margin-bottom: 4px;
+}
+.stat-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #F8FAFC;
+}
+
+/* ---------- BUTTONS ---------- */
+.btn-primary {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #FBBF24, #F59E0B);
+  color: #0B0F14;
+  cursor: pointer;
+  transition: 0.3s;
+  font-family: inherit;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(251, 191, 36, 0.25);
+}
+.btn-primary:active {
+  transform: scale(0.97);
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* ---------- BOTTOM NAV ---------- */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #0F141B;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
+  z-index: 100;
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  color: #687384;
+  font-size: 0.6rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 12px;
+  transition: 0.2s;
+  font-family: inherit;
+  position: relative;
+}
+.nav-item svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+}
+.nav-item span {
+  margin-top: 2px;
+}
+.nav-item.active {
+  color: #FBBF24;
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 3px;
+  background: #FBBF24;
+  border-radius: 0 0 4px 4px;
+}
+
+/* ---------- PLACEHOLDER PAGES ---------- */
+.page h2 {
+  font-size: 1.5rem;
+  margin-bottom: 12px;
+}
+.page p {
+  color: #A7B0BC;
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (min-width: 640px) {
+  .main-content {
+    max-width: 800px;
+  }
+  .stats-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+   }
