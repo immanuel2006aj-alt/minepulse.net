@@ -1,0 +1,10 @@
+{
+  "name": "MinePulse",
+  "short_name": "MinePulse",
+  "description": "Earn daily by mining",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0F14",
+  "theme_color": "#FBBF24",
+  "icons": []
+}
