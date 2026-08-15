@@ -111,6 +111,11 @@ def root():
 def health():
     return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
 
+@app.get("/test-telegram")
+def test_telegram():
+    send_telegram("🔔 Test message from MinePulse!")
+    return {"status": "ok"}
+
 # ---------- AUTH ----------
 @app.post("/api/auth/register")
 def register(user: UserRegister):
