@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+  <title>MinePulse – Login</title>
+  <link rel="stylesheet" href="login.css" />
+</head>
+<body>
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-logo">MinePulse</div>
+      <p class="auth-tagline">Sign in to start mining</p>
+
+      <!-- ========== LOGIN FORM ========== -->
+      <div id="login-form" class="auth-form">
+        <div class="form-group">
+          <label>Email</label>
+          <input id="login-email" type="email" placeholder="you@example.com" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input id="login-password" type="password" placeholder="••••••••" />
+        </div>
+        <div id="login-error" class="auth-error" style="display:none;"></div>
+        <button id="login-btn" class="auth-btn">Log In</button>
+        <p class="auth-toggle">Don't have an account? <span id="show-signup">Sign Up</span></p>
+      </div>
+
+      <!-- ========== SIGN UP FORM ========== -->
+      <div id="signup-form" class="auth-form" style="display:none;">
+        <div class="form-group">
+          <label>Username</label>
+          <input id="signup-username" type="text" placeholder="Your username" />
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input id="signup-email" type="email" placeholder="you@example.com" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input id="signup-password" type="password" placeholder="Min 6 characters" />
+        </div>
+        <div class="form-group">
+          <label>Payout Method</label>
+          <select id="signup-payout">
+            <option value="UPI">UPI</option>
+            <option value="BANK">Bank Transfer</option>
+            <option value="USDT">USDT</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Wallet Address / UPI ID</label>
+          <input id="signup-wallet" type="text" placeholder="Enter your wallet address" />
+        </div>
+        <div id="signup-error" class="auth-error" style="display:none;"></div>
+        <button id="signup-btn" class="auth-btn">Create Account</button>
+        <p class="auth-toggle">Already have an account? <span id="show-login">Log In</span></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://minepulse-net.onrender.com';
+
+    // ---------- HELPERS ----------
+    function showError(element, message) {
+      element.textContent = message;
+      element.style.display = 'block';
+    }
+
+    function hideError(element) {
+      element.style.display = 'none';
+    }
+
+    async function apiCall(endpoint, method = 'GET', body = null) {
+      const url = `${API_BASE}${endpoint}`;
+      const options = { method, headers: { 'Content-Type': 'application/json' } };
+      if (body) options.body = JSON.stringify(body);
+      try {
+        const res = await fetch(url, options);
+        return await res.json();
+      } catch (e) {
+        return { error: 'Network error. Please try again.' };
+      }
+    }
+
+    // ---------- LOGIN ----------
+    async function loginUser() {
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      const errorEl = document.getElementById('login-error');
+
+      if (!email || !password) {
+        showError(errorEl, 'Please fill in all fields.');
+        return;
+      }
+
+      hideError(errorEl);
+      const result = await apiCall('/api/auth/login', 'POST', { email, password });
+
+      if (result && result.user_id) {
+        localStorage.setItem('minepulse_user', JSON.stringify({ user_id: result.user_id, username: result.username }));
+        window.location.href = 'index.html';
+      } else {
+        showError(errorEl, result?.detail || 'Login failed. Please check your credentials.');
+      }
+    }
+
+    // ---------- REGISTER ----------
+    async function registerUser() {
+      const username = document.getElementById('signup-username').value.trim();
+      const email = document.getElementById('signup-email').value.trim();
+      const password = document.getElementById('signup-password').value;
+      const payout = document.getElementById('signup-payout').value;
+      const wallet = document.getElementById('signup-wallet').value.trim();
+      const errorEl = document.getElementById('signup-error');
+
+      if (!username || !email || password.length < 6 || !wallet) {
+        showError(errorEl, 'Please fill in all fields. Password must be at least 6 characters.');
+        return;
+      }
+
+      hideError(errorEl);
+      const result = await apiCall('/api/auth/register', 'POST', { username, email, password, payout_method: payout, wallet_address: wallet });
+
+      if (result && result.user_id) {
+        localStorage.setItem('minepulse_user', JSON.stringify({ user_id: result.user_id, username }));
+        window.location.href = 'index.html';
+      } else {
+        showError(errorEl, result?.detail || 'Registration failed. Please try again.');
+      }
+    }
+
+    // ---------- TOGGLE FORMS ----------
+    document.getElementById('show-signup').addEventListener('click', function() {
+      document.getElementById('login-form').style.display = 'none';
+      document.getElementById('signup-form').style.display = 'block';
+      hideError(document.getElementById('login-error'));
+      hideError(document.getElementById('signup-error'));
+    });
+
+    document.getElementById('show-login').addEventListener('click', function() {
+      document.getElementById('login-form').style.display = 'block';
+      document.getElementById('signup-form').style.display = 'none';
+      hideError(document.getElementById('login-error'));
+      hideError(document.getElementById('signup-error'));
+    });
+
+    // ---------- BUTTON EVENTS ----------
+    document.getElementById('login-btn').addEventListener('click', loginUser);
+    document.getElementById('signup-btn').addEventListener('click', registerUser);
+
+    // Enter key support
+    document.getElementById('login-password').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') loginUser();
+    });
+    document.getElementById('signup-password').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') registerUser();
+    });
+
+    // Check if already logged in
+    const stored = localStorage.getItem('minepulse_user');
+    if (stored) {
+      try {
+        const data = JSON.parse(stored);
+        if (data.user_id) {
+          window.location.href = 'index.html';
+        }
+      } catch(e) {}
+    }
+  </script>
+</body>
+</html>
