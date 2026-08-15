@@ -2,7 +2,7 @@
 // MINEPULSE – APP.JS (BACKEND CONNECTED)
 // ============================================================
 
-const API_BASE = 'https://minepulse-backend.onrender.com'; // Your Render URL
+const API_BASE = 'https://minepulse-net.onrender.com'; // Your Render URL
 
 // ---------- STATE ----------
 let isMining = false;
