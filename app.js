@@ -314,22 +314,21 @@ function startMining() {
   addNotification('Mining Started', 'Your mining session is now active.');
 
   miningInterval = setInterval(() => {
-    if (isPaused) return;
-    hashrate = 10 + Math.random() * 50;
-    const increment = 0.05 + Math.random() * 0.15;
-    earnings += increment;
-    totalEarnings += increment;
-    weekEarnings += increment;
-    monthEarnings += increment;
-    lifetimeEarnings += increment;
-    if (Math.random() > 0.9) shares += 1;
-    if (Math.random() > 0.97) rejected += 1;
-    updateDashboard();
-    if (Math.floor(sessionSeconds) % 10 === 0) {
-      sendHeartbeat(hashrate, shares, rejected);
-    }
-  }, 1000);
-
+  if (isPaused) return;
+  hashrate = 10 + Math.random() * 50;
+  shares += Math.random() > 0.9 ? 1 : 0;
+  rejected += Math.random() > 0.97 ? 1 : 0;
+  sessionSeconds += 1;
+  updateDashboard();
+  
+  // Send heartbeat every 10 seconds
+  if (sessionSeconds % 10 === 0) {
+    sendHeartbeat(hashrate, shares, rejected);
+    // Fetch real earnings from backend
+    fetchEarnings();
+    fetchWalletBalance();
+  }
+}, 1000);
   sessionInterval = setInterval(() => {
     if (!isPaused) sessionSeconds += 1;
     updateDashboard();
