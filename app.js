@@ -11,11 +11,11 @@ const API_BASE = 'https://minepulse-net.onrender.com';
 
 // Feature flags – enable/disable features without changing code
 const FEATURES = {
-  REAL_MINER: false,      // Set to true when real XMRig is ready
-  PROXY_MODULE: false,    // Set to true when proxy SDK is integrated
-  CDN_MODULE: false,      // Set to true when CDN is integrated
-  AI_MODULE: false,       // Set to true when AI compute is integrated
-  SMART_ROUTING: false,   // Set to true when routing engine is ready
+  REAL_MINER: true,      // Set to true when real XMRig is ready
+  PROXY_MODULE: true,    // Set to true when proxy SDK is integrated
+  CDN_MODULE: true,      // Set to true when CDN is integrated
+  AI_MODULE: true,       // Set to true when AI compute is integrated
+  SMART_ROUTING: true,   // Set to true when routing engine is ready
   REFERRALS: false,       // Set to true when referral system is live
   ADMIN_DASHBOARD: false, // Set to true when admin UI is ready
 };
