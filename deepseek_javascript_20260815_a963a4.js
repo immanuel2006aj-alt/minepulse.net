@@ -1,0 +1,533 @@
+// ============================================================
+// MINEPULSE – APP.JS (FULL COMPLETE VERSION)
+// ============================================================
+
+const API_BASE = 'https://minepulse-net.onrender.com';
+
+// ---------- STATE ----------
+let isMining = false;
+let isPaused = false;
+let miningInterval = null;
+let sessionInterval = null;
+let hashrate = 0;
+let earnings = 0;
+let sessionSeconds = 0;
+let shares = 0;
+let rejected = 0;
+let totalEarnings = 0;
+let weekEarnings = 0;
+let monthEarnings = 0;
+let lifetimeEarnings = 0;
+let activityLog = [];
+let notifications = [];
+let userId = null;
+let sessionId = null;
+
+// ---------- DOM REFS ----------
+const startBtn = document.getElementById('start-btn');
+const miningToggleBtn = document.getElementById('mining-toggle-btn');
+const pauseBtn = document.getElementById('pause-btn');
+const resumeBtn = document.getElementById('resume-btn');
+
+const earningsEl = document.getElementById('today-earnings');
+const hashrateEl = document.getElementById('hashrate-value');
+const statusEl = document.getElementById('mining-status');
+const sessionTimeEl = document.getElementById('session-time');
+const sharesEl = document.getElementById('shares-count');
+const sessionInfo = document.getElementById('session-info');
+
+const miningHashrate = document.getElementById('mining-hashrate');
+const miningSession = document.getElementById('mining-session');
+const miningShares = document.getElementById('mining-shares');
+const miningRejected = document.getElementById('mining-rejected');
+
+const earningsToday = document.getElementById('earnings-today');
+const earningsWeek = document.getElementById('earnings-week');
+const earningsMonth = document.getElementById('earnings-month');
+const earningsLifetime = document.getElementById('earnings-lifetime');
+
+const walletBalance = document.getElementById('wallet-balance');
+const walletPending = document.getElementById('wallet-pending');
+
+const activityList = document.getElementById('activity-list');
+const historyList = document.getElementById('earnings-history-list');
+const payoutList = document.getElementById('payout-list');
+const notifList = document.getElementById('notifications-list');
+
+// ---------- UTILITY ----------
+function formatTime(seconds) {
+  const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
+  const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+  const s = String(seconds % 60).padStart(2, '0');
+  return `${h}:${m}:${s}`;
+}
+
+function formatINR(amount) {
+  return '₹' + amount.toFixed(2);
+}
+
+function addActivity(text, amount = null) {
+  const time = new Date().toLocaleTimeString();
+  activityLog.unshift({ text, amount, time });
+  if (activityLog.length > 20) activityLog.pop();
+  renderActivity();
+}
+
+function addNotification(title, body) {
+  notifications.unshift({ title, body, time: new Date().toISOString(), read: false });
+  if (notifications.length > 50) notifications.pop();
+  renderNotifications();
+  updateNotifDot();
+}
+
+// ---------- RENDER FUNCTIONS ----------
+function renderActivity() {
+  if (activityLog.length === 0) {
+    activityList.innerHTML = '<div class="activity-empty">No activity yet.</div>';
+    return;
+  }
+  let html = '';
+  activityLog.slice(0, 10).forEach(item => {
+    const amountText = item.amount ? formatINR(item.amount) : '';
+    html += `
+      <div class="activity-item">
+        <span>${item.text}</span>
+        <span>
+          <span class="amount">${amountText}</span>
+          <span class="time">${item.time}</span>
+        </span>
+      </div>
+    `;
+  });
+  activityList.innerHTML = html;
+}
+
+function renderNotifications() {
+  if (notifications.length === 0) {
+    notifList.innerHTML = '<div class="activity-empty">No notifications.</div>';
+    return;
+  }
+  let html = '';
+  notifications.slice(0, 20).forEach(n => {
+    html += `
+      <div class="activity-item">
+        <span><strong>${n.title}</strong><br><span style="font-size:0.8rem;color:#687384;">${n.body}</span></span>
+        <span class="time">${new Date(n.time).toLocaleDateString()}</span>
+      </div>
+    `;
+  });
+  notifList.innerHTML = html;
+}
+
+function updateNotifDot() {
+  const dot = document.getElementById('notif-dot');
+  const unread = notifications.filter(n => !n.read).length;
+  if (dot) dot.style.display = unread > 0 ? 'block' : 'none';
+}
+
+function renderHistory() {
+  const history = [
+    { date: '2026-08-14', amount: 45.20 },
+    { date: '2026-08-13', amount: 52.10 },
+    { date: '2026-08-12', amount: 38.75 },
+  ];
+  if (historyList) {
+    let html = '';
+    history.forEach(h => {
+      html += `
+        <div class="activity-item">
+          <span>${h.date}</span>
+          <span class="amount">${formatINR(h.amount)}</span>
+        </div>
+      `;
+    });
+    historyList.innerHTML = html;
+  }
+}
+
+function renderPayouts() {
+  const payouts = [
+    { date: '2026-08-11', amount: 490, status: 'Completed' },
+    { date: '2026-08-04', amount: 490, status: 'Completed' },
+  ];
+  if (payoutList) {
+    let html = '';
+    payouts.forEach(p => {
+      html += `
+        <div class="activity-item">
+          <span>${p.date} – ${p.status}</span>
+          <span class="amount">${formatINR(p.amount)}</span>
+        </div>
+      `;
+    });
+    payoutList.innerHTML = html;
+  }
+}
+
+// ---------- UPDATE DASHBOARD ----------
+function updateDashboard() {
+  earningsEl.textContent = formatINR(earnings);
+  hashrateEl.textContent = hashrate.toFixed(1) + ' H/s';
+  miningHashrate.textContent = hashrate.toFixed(1) + ' H/s';
+  sessionTimeEl.textContent = formatTime(sessionSeconds);
+  miningSession.textContent = formatTime(sessionSeconds);
+  sharesEl.textContent = shares;
+  miningShares.textContent = shares;
+  miningRejected.textContent = rejected;
+
+  earningsToday.textContent = formatINR(earnings);
+  earningsWeek.textContent = formatINR(weekEarnings);
+  earningsMonth.textContent = formatINR(monthEarnings);
+  earningsLifetime.textContent = formatINR(lifetimeEarnings);
+
+  walletBalance.textContent = formatINR(lifetimeEarnings - (lifetimeEarnings % 100));
+  walletPending.textContent = formatINR(lifetimeEarnings % 100);
+}
+
+// ---------- API HELPERS ----------
+function getUserId() {
+  const stored = localStorage.getItem('minepulse_user');
+  if (stored) {
+    try {
+      const data = JSON.parse(stored);
+      return data.user_id;
+    } catch(e) {}
+  }
+  return 'demo-user-' + Date.now();
+}
+
+async function apiCall(endpoint, method = 'GET', body = null) {
+  const url = `${API_BASE}${endpoint}`;
+  const options = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) options.body = JSON.stringify(body);
+  try {
+    const res = await fetch(url, options);
+    return await res.json();
+  } catch (e) {
+    console.error('API call failed:', e);
+    return null;
+  }
+}
+
+async function sendHeartbeat(hashrate, shares, rejected) {
+  if (!userId) userId = getUserId();
+  if (!sessionId) sessionId = 'session-' + Date.now();
+  const payload = { user_id: userId, session_id: sessionId, hashrate, shares, rejected };
+  try {
+    const result = await apiCall('/api/mining/heartbeat', 'POST', payload);
+    console.log('Heartbeat sent:', result);
+  } catch (e) {
+    console.warn('Heartbeat failed:', e);
+  }
+}
+
+async function fetchEarnings() {
+  if (!userId) userId = getUserId();
+  try {
+    const today = await apiCall(`/api/earnings/today?user_id=${userId}`);
+    const week = await apiCall(`/api/earnings/week?user_id=${userId}`);
+    const month = await apiCall(`/api/earnings/month?user_id=${userId}`);
+    const lifetime = await apiCall(`/api/earnings/lifetime?user_id=${userId}`);
+    if (today) earningsToday.textContent = formatINR(today.amount || 0);
+    if (week) earningsWeek.textContent = formatINR(week.amount || 0);
+    if (month) earningsMonth.textContent = formatINR(month.amount || 0);
+    if (lifetime) earningsLifetime.textContent = formatINR(lifetime.amount || 0);
+  } catch (e) {
+    console.warn('Fetch earnings failed:', e);
+  }
+}
+
+async function fetchWalletBalance() {
+  if (!userId) userId = getUserId();
+  try {
+    const balance = await apiCall(`/api/wallet/balance?user_id=${userId}`);
+    if (balance) {
+      walletBalance.textContent = formatINR(balance.available || 0);
+      walletPending.textContent = formatINR(balance.pending || 0);
+    }
+  } catch (e) {
+    console.warn('Fetch wallet failed:', e);
+  }
+}
+
+async function fetchNotifications() {
+  if (!userId) userId = getUserId();
+  try {
+    const data = await apiCall(`/api/notifications?user_id=${userId}`);
+    if (data && data.notifications) {
+      notifications = data.notifications;
+      renderNotifications();
+      updateNotifDot();
+    }
+  } catch (e) {
+    console.warn('Fetch notifications failed:', e);
+  }
+}
+
+async function registerUser(username, email, password, payoutMethod, wallet) {
+  const payload = { username, email, password, payout_method: payoutMethod || 'UPI', wallet_address: wallet || '' };
+  const result = await apiCall('/api/auth/register', 'POST', payload);
+  if (result && result.user_id) {
+    userId = result.user_id;
+    localStorage.setItem('minepulse_user', JSON.stringify({ user_id: userId, username }));
+    addNotification('Registration Successful', `Welcome ${username}!`);
+    return result;
+  }
+  return null;
+}
+
+async function loginUser(email, password) {
+  const payload = { email, password };
+  const result = await apiCall('/api/auth/login', 'POST', payload);
+  if (result && result.user_id) {
+    userId = result.user_id;
+    localStorage.setItem('minepulse_user', JSON.stringify({ user_id: userId, username: result.username }));
+    addNotification('Login Successful', `Welcome back ${result.username}!`);
+    return result;
+  }
+  return null;
+}
+
+// ---------- MINING ENGINE ----------
+function startMining() {
+  if (isMining) return;
+  isMining = true;
+  isPaused = false;
+
+  if (!userId) userId = getUserId();
+  if (!sessionId) sessionId = 'session-' + Date.now();
+  localStorage.setItem('minepulse_user', JSON.stringify({ user_id: userId }));
+
+  statusEl.textContent = '● Active';
+  statusEl.style.color = '#34D399';
+  startBtn.textContent = 'STOP MINING';
+  startBtn.style.background = 'linear-gradient(135deg, #EF4444, #DC2626)';
+  startBtn.style.color = 'white';
+  miningToggleBtn.textContent = 'STOP MINING';
+  miningToggleBtn.style.background = 'linear-gradient(135deg, #EF4444, #DC2626)';
+  miningToggleBtn.style.color = 'white';
+  pauseBtn.disabled = false;
+  resumeBtn.disabled = true;
+  sessionInfo.style.display = 'flex';
+
+  addActivity('Mining started', null);
+  addNotification('Mining Started', 'Your mining session is now active.');
+
+  miningInterval = setInterval(() => {
+    if (isPaused) return;
+    hashrate = 10 + Math.random() * 50;
+    const increment = 0.05 + Math.random() * 0.15;
+    earnings += increment;
+    totalEarnings += increment;
+    weekEarnings += increment;
+    monthEarnings += increment;
+    lifetimeEarnings += increment;
+    if (Math.random() > 0.9) shares += 1;
+    if (Math.random() > 0.97) rejected += 1;
+    updateDashboard();
+    if (Math.floor(sessionSeconds) % 10 === 0) {
+      sendHeartbeat(hashrate, shares, rejected);
+    }
+  }, 1000);
+
+  sessionInterval = setInterval(() => {
+    if (!isPaused) sessionSeconds += 1;
+    updateDashboard();
+  }, 1000);
+
+  fetchEarnings();
+  fetchWalletBalance();
+  fetchNotifications();
+}
+
+function stopMining() {
+  if (!isMining) return;
+  isMining = false;
+  isPaused = false;
+  clearInterval(miningInterval);
+  clearInterval(sessionInterval);
+  miningInterval = null;
+  sessionInterval = null;
+
+  statusEl.textContent = '● Inactive';
+  statusEl.style.color = '#687384';
+  startBtn.textContent = 'START MINING';
+  startBtn.style.background = 'linear-gradient(135deg, #FBBF24, #F59E0B)';
+  startBtn.style.color = '#0B0F14';
+  miningToggleBtn.textContent = 'START MINING';
+  miningToggleBtn.style.background = 'linear-gradient(135deg, #FBBF24, #F59E0B)';
+  miningToggleBtn.style.color = '#0B0F14';
+  pauseBtn.disabled = true;
+  resumeBtn.disabled = true;
+  sessionInfo.style.display = 'none';
+
+  addActivity('Mining stopped', earnings);
+  addNotification('Mining Stopped', 'Your mining session has ended.');
+  sendHeartbeat(hashrate, shares, rejected);
+  updateDashboard();
+}
+
+function pauseMining() {
+  if (!isMining || isPaused) return;
+  isPaused = true;
+  statusEl.textContent = '● Paused';
+  statusEl.style.color = '#F59E0B';
+  pauseBtn.disabled = true;
+  resumeBtn.disabled = false;
+  addActivity('Mining paused', null);
+  addNotification('Mining Paused', 'Your mining session is paused.');
+}
+
+function resumeMining() {
+  if (!isMining || !isPaused) return;
+  isPaused = false;
+  statusEl.textContent = '● Active';
+  statusEl.style.color = '#34D399';
+  pauseBtn.disabled = false;
+  resumeBtn.disabled = true;
+  addActivity('Mining resumed', null);
+  addNotification('Mining Resumed', 'Your mining session has resumed.');
+}
+
+function toggleMining() {
+  if (isMining) {
+    stopMining();
+  } else {
+    startMining();
+  }
+}
+
+// ---------- NAVIGATION ----------
+function showPage(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const page = document.getElementById(pageId);
+  if (page) page.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.page === pageId);
+  });
+}
+
+function showSubpage(pageId) {
+  document.querySelectorAll('.page.subpage').forEach(p => p.classList.remove('active'));
+  const page = document.getElementById(pageId);
+  if (page) page.classList.add('active');
+}
+
+// ---------- THEME ----------
+function toggleTheme() {
+  document.body.classList.toggle('light');
+  localStorage.setItem('minepulse-theme', document.body.classList.contains('light') ? 'light' : 'dark');
+}
+
+function loadTheme() {
+  const theme = localStorage.getItem('minepulse-theme');
+  if (theme === 'light') document.body.classList.add('light');
+}
+
+// ---------- BOOTSTRAP ----------
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM ready.');
+  loadTheme();
+
+  showPage('page-dashboard');
+  renderHistory();
+  renderPayouts();
+  updateDashboard();
+
+  // Navigation buttons
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.addEventListener('click', function() {
+      showPage(this.dataset.page);
+    });
+  });
+
+  // Start/Stop buttons
+  startBtn.addEventListener('click', toggleMining);
+  miningToggleBtn.addEventListener('click', toggleMining);
+
+  // Pause / Resume
+  pauseBtn.addEventListener('click', pauseMining);
+  resumeBtn.addEventListener('click', resumeMining);
+
+  // Back buttons
+  document.querySelectorAll('.back-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      showPage(this.dataset.back);
+    });
+  });
+
+  // More items
+  document.querySelectorAll('.more-item[data-page]').forEach(item => {
+    item.addEventListener('click', function() {
+      showSubpage(this.dataset.page);
+    });
+  });
+
+  // Logout
+  document.querySelectorAll('#logout-btn, #logout-settings-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      if (isMining) stopMining();
+      addNotification('Logged Out', 'You have been logged out.');
+      showPage('page-dashboard');
+    });
+  });
+
+  // Theme toggle
+  document.getElementById('theme-toggle')?.addEventListener('click', toggleTheme);
+
+  // Currency selector
+  document.getElementById('currency-select')?.addEventListener('change', function() {
+    addNotification('Currency Changed', `Currency set to ${this.value}`);
+  });
+
+  // Copy address
+  document.getElementById('copy-address')?.addEventListener('click', function() {
+    const addr = document.getElementById('wallet-address').textContent;
+    navigator.clipboard?.writeText(addr).then(() => {
+      this.textContent = 'Copied!';
+      setTimeout(() => { this.textContent = 'Copy'; }, 2000);
+    });
+  });
+
+  // Withdraw button
+  document.getElementById('withdraw-btn')?.addEventListener('click', function() {
+    const amount = parseFloat(walletBalance.textContent.replace('₹', ''));
+    if (amount < 100) {
+      addNotification('Withdrawal Failed', 'Minimum payout is ₹100.');
+      return;
+    }
+    addNotification('Payout Requested', `₹${amount.toFixed(2)} requested. Processing...`);
+    addActivity('Payout requested', amount);
+  });
+
+  // Notification bell
+  document.getElementById('notif-btn')?.addEventListener('click', function() {
+    notifications.forEach(n => n.read = true);
+    updateNotifDot();
+    showPage('page-notifications');
+  });
+
+  // Load notifications from storage
+  const savedNotifs = localStorage.getItem('minepulse_notifications');
+  if (savedNotifs) {
+    try {
+      notifications = JSON.parse(savedNotifs);
+      renderNotifications();
+      updateNotifDot();
+    } catch(e) {}
+  }
+
+  // Save notifications periodically
+  setInterval(() => {
+    localStorage.setItem('minepulse_notifications', JSON.stringify(notifications));
+  }, 5000);
+
+  // Auto-login demo user
+  if (!userId) {
+    const demoEmail = 'demo@minepulse.com';
+    const demoPassword = 'demo123';
+    registerUser('demouser', demoEmail, demoPassword, 'UPI', 'demo_wallet');
+  }
+
+  addNotification('Welcome to MinePulse', 'Start mining to earn daily rewards.');
+});
