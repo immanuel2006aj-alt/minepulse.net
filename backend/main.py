@@ -100,10 +100,11 @@ def login(user: UserLogin):
 # ---------- MINING ----------
 @app.post("/api/mining/heartbeat")
 def heartbeat(heartbeat: MiningHeartbeat):
-    # Store mining stats in Supabase (or mock)
+    # Store mining stats in Supabase
     if not supabase:
         return {"status": "ok", "message": "Heartbeat received (mock)"}
     try:
+        # 1. Insert into mining_stats
         data = {
             "user_id": heartbeat.user_id,
             "hashrate": heartbeat.hashrate,
@@ -113,6 +114,22 @@ def heartbeat(heartbeat: MiningHeartbeat):
             "timestamp": datetime.utcnow().isoformat()
         }
         supabase.table("mining_stats").insert(data).execute()
+
+        # 2. Calculate earnings for this heartbeat
+        # Simple formula: earnings = hashrate * 0.0001 per second (simplified)
+        # In production, you would use actual mining pool data
+        earnings_amount = heartbeat.hashrate * 0.0001
+
+        # 3. Insert into earnings table
+        earnings_data = {
+            "user_id": heartbeat.user_id,
+            "amount": earnings_amount,
+            "type": "mining",
+            "status": "pending",
+            "created_at": datetime.utcnow().isoformat()
+        }
+        supabase.table("earnings").insert(earnings_data).execute()
+
         return {"status": "ok", "message": "Heartbeat recorded"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
@@ -132,29 +149,50 @@ def mining_status(user_id: str):
 # ---------- EARNINGS ----------
 @app.get("/api/earnings/today")
 def earnings_today(user_id: str):
-    # Mock earnings for demo
-    return {"amount": 12.50, "currency": "INR"}
+    if not supabase:
+        return {"amount": 12.50, "currency": "INR"}
+    try:
+        today = datetime.utcnow().date().isoformat()
+        result = supabase.table("earnings").select("amount").eq("user_id", user_id).gte("created_at", today).execute()
+        total = sum(item["amount"] for item in result.data) if result.data else 0
+        return {"amount": round(total, 2), "currency": "INR"}
+    except Exception:
+        return {"amount": 0, "currency": "INR"}
 
 @app.get("/api/earnings/week")
 def earnings_week(user_id: str):
-    return {"amount": 87.20, "currency": "INR"}
+    if not supabase:
+        return {"amount": 87.20, "currency": "INR"}
+    try:
+        week_ago = (datetime.utcnow() - timedelta(days=7)).isoformat()
+        result = supabase.table("earnings").select("amount").eq("user_id", user_id).gte("created_at", week_ago).execute()
+        total = sum(item["amount"] for item in result.data) if result.data else 0
+        return {"amount": round(total, 2), "currency": "INR"}
+    except Exception:
+        return {"amount": 0, "currency": "INR"}
 
 @app.get("/api/earnings/month")
 def earnings_month(user_id: str):
-    return {"amount": 345.80, "currency": "INR"}
+    if not supabase:
+        return {"amount": 345.80, "currency": "INR"}
+    try:
+        month_ago = (datetime.utcnow() - timedelta(days=30)).isoformat()
+        result = supabase.table("earnings").select("amount").eq("user_id", user_id).gte("created_at", month_ago).execute()
+        total = sum(item["amount"] for item in result.data) if result.data else 0
+        return {"amount": round(total, 2), "currency": "INR"}
+    except Exception:
+        return {"amount": 0, "currency": "INR"}
 
 @app.get("/api/earnings/lifetime")
 def earnings_lifetime(user_id: str):
-    return {"amount": 1234.56, "currency": "INR"}
-
-@app.get("/api/earnings/history")
-def earnings_history(user_id: str, limit: int = 10):
-    # Mock history
-    history = []
-    for i in range(limit):
-        date = (datetime.utcnow() - timedelta(days=i)).date().isoformat()
-        history.append({"date": date, "amount": round(10 + i * 2.5, 2)})
-    return {"history": history}
+    if not supabase:
+        return {"amount": 1234.56, "currency": "INR"}
+    try:
+        result = supabase.table("earnings").select("amount").eq("user_id", user_id).execute()
+        total = sum(item["amount"] for item in result.data) if result.data else 0
+        return {"amount": round(total, 2), "currency": "INR"}
+    except Exception:
+        return {"amount": 0, "currency": "INR"}
 
 # ---------- WALLET ----------
 @app.get("/api/wallet/balance")
